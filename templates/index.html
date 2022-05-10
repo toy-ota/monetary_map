@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+{% load static %}
+{% load utils %}
+<html lang="ja">
+
+<head>
+  <!-- Never COVID-19 Again -->
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Monetary Map</title>
+  <link rel="icon" type="image/png" href="{% static 'img/logo.svg' %}">
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+</head>
+
+<body>
+  <div class="container-fluid">
+    <div class="h-10">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container-fluid">
+          <a class="navbar-brand" href="#">Monetary Map</a>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+            data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false"
+            aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+              <li class="nav-item">
+                <a class="nav-link active" aria-current="page" href="#">Home</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#">Link</a>
+              </li>
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown"
+                  aria-expanded="false">
+                  Dropdown
+                </a>
+                <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                  <li><a class="dropdown-item" href="#">Action</a></li>
+                  <li><a class="dropdown-item" href="#">Another action</a></li>
+                  <li>
+                    <hr class="dropdown-divider">
+                  </li>
+                  <li><a class="dropdown-item" href="#">Something else here</a></li>
+                </ul>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true">Disabled</a>
+              </li>
+            </ul>
+            <form class="d-flex">
+              <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">
+              <button class="btn btn-outline-success" type="submit">Search</button>
+            </form>
+          </div>
+        </div>
+      </nav>
+    </div>
+    <div class="h-90">
+      <div class="row">
+        <div class="col-9">
+          <div id="target"></div>
+          <canvas id="ex_chart" height="42"></canvas>
+        </div>
+        <div class="col-3">
+          <div class="row d-flex justify-content-end align-content-center">
+            <canvas id="purchase_kind"></canvas>
+          </div>
+          <div class="row d-flex justify-content-end align-content-center">
+            <div id="id_ingredient"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <form name="myform" id="ajax-number" action="{% url 'item:ajax_number' %}" method="POST">
+      {% csrf_token %}
+      <input type="number" id="number1" style="display:none;">
+      <button type="submit" id="btn1" style="display:none;"></button>
+    </form>
+  </div>
+  <script type="text/javascript">
+    const priceUnit = '\xA5';
+    const DJANGO_STATIC_URL = "{% static '' %}";
+    const marker_data = [
+      {% for detail in data %}
+    {
+      superID: {{ detail.id }},
+      storeName: '{{detail.store}}',
+        price: `${priceUnit}{{ detail.total_price | calculate_tax:detail.tax | floatformat:0 }}`,
+          lat: {{ detail.store.latitude }},
+      lng: {{ detail.store.longitude }}
+    },
+    {% endfor %}
+  ];
+  </script>
+  <script async defer
+    src="https://maps.googleapis.com/maps/api/js?language=ja&region=jp&key=AIzaSyDvcpmwe3MeAssho3QsGVtNLbgMV-5RDAU&callback=initMap"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.0"></script>
+  <!-- <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script> -->
+  <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.1/Chart.min.js"></script>
+  <script src="https://unpkg.com/vue-chartjs/dist/vue-chartjs.min.js"></script> -->
+
+
+  <script type="text/javascript" src="{% static 'js/script.js' %}"></script>
+
+  <script>
+    var ctx = document.getElementById('ex_chart');
+
+    var data = {
+      labels: ["1月", "2月", "3月", "4月", "5月"],
+      datasets: [{
+        label: 'プリンター販売台数',
+        data: [880, 740, 900, 520, 930],
+        borderColor: 'rgba(255, 100, 100, 1)',
+        lineTension: 0,
+        fill: false,
+        borderWidth: 3
+      }]
+    };
+
+    var options = {
+      plungins: {
+        legend: {
+          display: false
+        }
+      },
+      scales: {
+        yAxes: [{
+          ticks: {
+            min: 300
+            //beginAtZero: true
+          }
+        }]
+      }
+    };
+
+    var ex_chart = new Chart(ctx, {
+      type: 'line',
+      data: data,
+      options: options
+    });
+  </script>
+
+  <script>
+    window.onload = function () {
+      let context = document.querySelector("#purchase_kind").getContext('2d')
+      new Chart(context, {
+        type: 'doughnut',
+        data: {
+          labels: ["食費", "日用品", "趣味・娯楽", "交際費", "交通費", "衣服・美容", "健康・医療", "自動車"],
+          datasets: [{
+            data: [60, 20, 15, 10, 5, 11, 12, 23],
+            backgroundColor: [
+              'rgb(255, 99, 132)',
+              'rgb(54, 162, 235)',
+              'rgb(255, 205, 86)',
+              'rgb(255, 25, 86)',
+              'rgb(25, 205, 86)',
+              'rgb(25, 205, 86)',
+              'rgb(25, 205, 86)',
+              'rgb(25, 205, 86)',
+            ],
+          }]
+        },
+        options: {
+          cutoutPercentage: 6,
+          responsive: false,
+        }
+      });
+    }
+  </script>
+  <script>
+    function getCookie(name) {
+      var cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        var cookies = document.cookie.split(';');
+        for (var i = 0; i < cookies.length; i++) {
+          var cookie = jQuery.trim(cookies[i]);
+          // Does this cookie string begin with the name we want?
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+
+    var csrftoken = getCookie('csrftoken');
+
+    function csrfSafeMethod(method) {
+      // these HTTP methods do not require CSRF protection
+      return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+    }
+
+    $.ajaxSetup({
+      beforeSend: function (xhr, settings) {
+        if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+          xhr.setRequestHeader("X-CSRFToken", csrftoken);
+        }
+      }
+    });
+
+    $('#ajax-number').submit(function (e) {
+      e.preventDefault();
+
+      $.ajax({
+        'url': '{% url "item:ajax_number" %}',
+        'type': 'POST',
+        'data': {
+          'superID': $('#number1').val(),
+        },
+        'dataType': 'json'
+      })
+        .done(function (response) {
+          $('#id_ingredient').empty();
+          const dayname = ['日','月','火','水','木','金','土'];
+
+          const purchaseTime = new Date(response.store_list[0][3]);
+          const purchaseYear = purchaseTime.getFullYear();
+          const purchaseMonth = purchaseTime.getMonth()+1;
+          const purchaseDate = purchaseTime.getDate();
+          const purchaseDay = dayname[purchaseTime.getDay()];
+          const purchaseHour = purchaseTime.getHours();
+          const purchaseMinute = purchaseTime.getMinutes();
+          const purchaseTimeTable = `${purchaseYear}年${purchaseMonth}月${purchaseDate}日(${purchaseDay}) ${purchaseHour}時${purchaseMinute}分`
+          let captionTr = `
+            <table class="table table-striped caption-top">
+            <caption>
+              <font size="4">${response.store_list[0][0]}<br>${purchaseTimeTable}</font>
+            </caption>
+          `;
+          for (const ingredient of response.purchase_list) {
+            const tr =
+              `
+            <tr><td>${ingredient[0]} (×${ingredient[2]}コ)</td><td align='right'>${priceUnit}${ingredient[3]}</td></tr>
+            `;
+            captionTr = captionTr + tr;
+          };
+          captionTr = captionTr + `<tr><td>消費税</td><td align='right'>${priceUnit}${response.store_list[0][2]}</td></tr>`;
+          captionTr = captionTr + `<tr><td><strong>合計金額</strong></td><td align='right'><strong>${priceUnit}${response.store_list[0][1]}</strong></td></tr></table>`;
+          $('#id_ingredient').append(captionTr);
+        })
+    });
+  </script>
+</body>
+
+</html>
